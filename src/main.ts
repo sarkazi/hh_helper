@@ -3,6 +3,9 @@ import inquirer from 'inquirer'
 import { showListAuthVariants } from './utils/showListAuthVariants.js'
 import chalk from 'chalk'
 import { Mutex } from 'async-mutex'
+import { generateCoverLetter } from './utils/generateCoverLetter.js'
+import { defineCityVacancy } from './utils/defineCityVacancy.js'
+import { defineTitleVacancy } from './utils/defineTitleVacancy.js'
 const mutex = new Mutex()
 ;(async () => {
   try {
@@ -55,9 +58,8 @@ const mutex = new Mutex()
           {
             type: 'input',
             name: 'googleAuthVariant',
-            message: chalk.bgGreen(
+            message:
               'Введите email или номер телефона для google-аутентификации'
-            )
           }
         ])
 
@@ -81,7 +83,7 @@ const mutex = new Mutex()
         {
           type: 'input',
           name: 'enterPhoneNumber',
-          message: chalk.bgGreen('Введите номер телефона')
+          message: 'Введите номер телефона'
         }
       ])
 
@@ -97,17 +99,14 @@ const mutex = new Mutex()
       const captchaInput = await page.$('[data-qa="account-captcha-input"]')
       const codeInput = await page.$('[data-qa="otp-code-input"]')
 
-      console.log(captchaInput, codeInput)
-
       if (captchaInput) {
         // ввоод каптчи
         const { enterPhoneCaptcha } = await inquirer.prompt([
           {
             type: 'input',
             name: 'enterPhoneCaptcha',
-            message: chalk.bgGreen(
+            message:
               'Скрин с каптчей отправлен в телеграм бот. Введите её здесь'
-            )
           }
         ])
 
@@ -125,7 +124,7 @@ const mutex = new Mutex()
           {
             type: 'input',
             name: 'enterPhoneCode',
-            message: chalk.bgGreen('Введите полученный на телефон код')
+            message: 'Введите полученный на телефон код'
           }
         ])
 
@@ -148,7 +147,7 @@ const mutex = new Mutex()
           {
             type: 'input',
             name: 'enterPhoneCode',
-            message: chalk.bgGreen('Введите полученный на телефон код')
+            message: 'Введите полученный на телефон код'
           }
         ])
 
@@ -170,7 +169,7 @@ const mutex = new Mutex()
         {
           type: 'input',
           name: 'enterEmail',
-          message: chalk.bgGreen('Введите email')
+          message: 'Введите email'
         }
       ])
 
@@ -186,7 +185,7 @@ const mutex = new Mutex()
         {
           type: 'input',
           name: 'enterEmailCode',
-          message: chalk.bgGreen('Введите отправленный на email код')
+          message: 'Введите отправленный на email код'
         }
       ])
 
@@ -201,9 +200,7 @@ const mutex = new Mutex()
       })
     } else {
       console.info(
-        chalk.bgRed(
-          'Используйте аутентификацию через Google. Остальное пока в разработке'
-        )
+        'Используйте аутентификацию через Google. Остальное пока в разработке'
       )
 
       await browser.close()
@@ -214,20 +211,33 @@ const mutex = new Mutex()
 
     //логика приветствия аутентифицированного пользователя
 
+    let applicantName = 'Василий Пупкин'
+
     await mutex.runExclusive(async () => {
       const profileBtn = await page.$('[data-qa="mainmenu_applicantProfile"]')
 
       await profileBtn!.click()
 
-      const userNameBlock = await page.$(
-        'body > div.bloko-drop.bloko-drop_menu.bloko-drop_theme-light.bloko-drop_layer-overlay.bloko-drop_flexible.bloko-drop_clickable.bloko-drop_bottom > div > div > div.supernova-dropdown > div:nth-child(1) > a > span'
+      // const userNameBlock = await page.$(
+      //   'body > div.bloko-drop.bloko-drop_menu.bloko-drop_theme-light.bloko-drop_layer-overlay.bloko-drop_flexible.bloko-drop_clickable.bloko-drop_bottom > div > div > div.supernova-dropdown > div:nth-child(1) > a > span'
+      // )
+
+      // const spanName = await userNameBlock
+      //   ?.getProperty('textContent').
+      //   .jsonValue()
+
+      const spanName = await page.$eval(
+        '[data-qa="mainmenu_applicantInfo"] > span',
+        (elem) => elem.innerHTML
       )
 
-      const spanName = await (await userNameBlock?.getProperty(
-        'textContent'
-      ))!.jsonValue()
+      if (spanName) {
+        applicantName = spanName
+      }
 
-      console.info(chalk.bgRed(`Вы успешно аутентифицированы, как ${spanName}`))
+      console.info(
+        `Вы успешно аутентифицированы, как ${chalk.bgGreen(applicantName)}`
+      )
     })
 
     //логика поиска вакансии
@@ -237,7 +247,7 @@ const mutex = new Mutex()
       {
         type: 'input',
         name: 'enterSearchQuery',
-        message: chalk.bgGreen('Введите поисковой запрос')
+        message: 'Введите поисковой запрос'
       }
     ])
 
@@ -275,16 +285,14 @@ const mutex = new Mutex()
       {
         type: 'input',
         name: 'selectNumberVacancy',
-        message: chalk.bgWhite(
-          `По вашему запросу найдено ${totalCountVacancy} вакансий. На сколько вакансий откликнуться боту? (Просто нажмите enter и бот откликнется на все)`
-        )
+        message: `По вашему запросу найдено ${`${chalk.bgGreen(
+          totalCountVacancy
+        )} вакансий`}. На сколько вакансий откликнуться боту? (Просто нажмите enter и бот откликнется на все)`
       }
     ])
 
     const targetNumberVacancy =
       selectNumberVacancy === '' ? +totalCountVacancy : +selectNumberVacancy
-
-    console.log(targetNumberVacancy, 'targetNumberVacancy')
 
     let countPages = await page.$$eval(
       '[data-qa="pager-page"] > span',
@@ -296,59 +304,37 @@ const mutex = new Mutex()
     let pageNumber = 1
     let countRespondedVacancy = 0
 
-    const crawlingPages = async () => {
+    const crawlingPage = async () => {
       if (
-        pageNumber === countPages + 1 ||
+        pageNumber > countPages ||
         countRespondedVacancy >= targetNumberVacancy
       ) {
+        console.info(
+          chalk.bgGrey(
+            'текущая страница больше чем общее количество или число откликов больше либо равно заданному параметру (выход)'
+          )
+        )
         return
       }
 
-      if (pageNumber !== 1) {
-        await mutex.runExclusive(async () => {
-          const nextPaginationBtnSelector = `[data-qa="pager-page-wrapper-${
-            pageNumber + 1
-          }-${pageNumber}"]`
-
-          const nextPaginationBtn = await page.$(nextPaginationBtnSelector)
-
-          await nextPaginationBtn?.click()
-          await page.waitForNavigation({
-            waitUntil: 'domcontentloaded',
-            timeout: 100000
-          })
-        })
-      }
-
-      const vacancyTitles = await page.$$eval(
-        '[data-qa="serp-item__title"]',
-        (elems) => {
-          return elems.map((el) => {
-            return el.innerHTML
-          })
-        }
-      )
+      // const vacancyTitles = await page.$$eval(
+      //   '[data-qa="serp-item__title"]',
+      //   (elems) => {
+      //     return elems.map((el) => {
+      //       return el.innerHTML
+      //     })
+      //   }
+      // )
 
       const vacancyList = await page.$$(
         '[data-qa="vacancy-serp__vacancy vacancy-serp__vacancy_standard"], [data-qa="vacancy-serp__vacancy vacancy-serp__vacancy_premium"], [data-qa="vacancy-serp__vacancy vacancy-serp__vacancy_standard_plus"]'
       )
 
-      const responseAfterCrowlingOnePage = await Promise.all(
-        vacancyList.slice(2, 4).map(async (vacancy) => {
+      await Promise.all(
+        vacancyList.map(async (vacancy) => {
           return await mutex.runExclusive(async () => {
             if (countRespondedVacancy >= targetNumberVacancy) {
               return
-            }
-
-            // ищем вакансию на которую не откликались
-            const noResponded = await vacancy.$(
-              '[data-qa="vacancy-serp__vacancy_response"]'
-            )
-
-            if (!noResponded) {
-              return {
-                status: 'already responded'
-              }
             }
 
             const href = await vacancy.$eval(
@@ -369,40 +355,95 @@ const mutex = new Mutex()
 
             //жмем на откликнуться
 
+            const city = await defineCityVacancy(page2)
+            const title = await defineTitleVacancy(page2)
+
+            const alreadyRespondBtn = await page2.$$(
+              '[data-qa="vacancy-response-link-view-topic"]'
+            )
+
+            if (alreadyRespondBtn.length) {
+              await page2.close()
+              console.info(
+                chalk.bgYellowBright(`${title}`),
+                chalk.bgYellowBright(`${city}`),
+                chalk.bgYellowBright(`${pageNumber}`),
+                chalk.bgBlueBright(`already responded`)
+              )
+              return
+            }
+
             const respondBtn = await page2.$$(
               '[data-qa="vacancy-response-link-top"]'
             )
 
-            if (!respondBtn[0]) {
+            if (!respondBtn.length) {
               await page2.close()
-              return {
-                status: 'non-standard'
-              }
+              console.info(
+                chalk.bgYellowBright(`${title}`),
+                chalk.bgYellowBright(`${city}`),
+                chalk.bgYellowBright(`${pageNumber}`),
+                chalk.bgRedBright(`non-standard`)
+              )
+              return
             }
 
             await respondBtn[0]?.click()
 
-            const waitLetterBtn = await page2.waitForSelector(
-              '[data-qa="vacancy-response-letter-toggle"]'
-            )
-
             await new Promise((r) => setTimeout(r, 3000))
 
-            // await page.evaluate((testo) => {
-            //     const element = document.querySelector(testo)
-            //     if (element) {
-            //         element.scrollIntoView()
-            //     }
-            // }, testo)
+            const coverLetter: string = await new Promise((resolve) => {
+              resolve(
+                generateCoverLetter({
+                  applicantName,
+                  //@ts-ignore
+                  city,
+                  jobRole: 'курьера'
+                })
+              )
+            })
+
+            const coverLetterInputInPopup = await page2.$(
+              '[data-qa="vacancy-response-popup-form-letter-input"]'
+            )
+
+            //если при отклике вспылвает попап с призывом на сопроводительное
+            if (coverLetterInputInPopup) {
+              await page2.evaluate((coverLetter) => {
+                document.querySelector('textarea')!.value = coverLetter
+              }, coverLetter)
+
+              const sendLetterBtnPopup = await page2.$(
+                '[data-qa="vacancy-response-submit-popup"]'
+              )
+
+              await sendLetterBtnPopup?.click()
+
+              console.info(
+                chalk.bgYellowBright(`${title}`),
+                chalk.bgYellowBright(`${city}`),
+                chalk.bgYellowBright(`${pageNumber}`),
+                chalk.bgGreenBright(`responded`)
+              )
+
+              await page2.close()
+
+              countRespondedVacancy++
+
+              return
+            }
+
+            //иначе...
+            const waitLetterBtn = await page2.waitForSelector(
+              '[data-qa="vacancy-response-letter-toggle"]',
+              { timeout: 0 }
+            )
 
             await waitLetterBtn?.click()
 
-            // добавляем сопроводительное
-
-            await page2.evaluate(() => {
-              document.querySelector('textarea')!.value =
-                'Здравствуйте. Есть большой опыт в данной сфере.'
-            })
+            await page2.evaluate((coverLetter) => {
+              document.querySelector('textarea')!.value = coverLetter
+            }, coverLetter)
 
             const sendLetterBtn = await page2.$(
               '[data-qa="vacancy-response-letter-submit"]'
@@ -410,35 +451,55 @@ const mutex = new Mutex()
 
             await sendLetterBtn?.click()
 
+            console.info(
+              chalk.bgYellowBright(`${title}`),
+              chalk.bgYellowBright(`${city}`),
+              chalk.bgYellowBright(`${pageNumber}`),
+              chalk.bgGreenBright(`responded`)
+            )
+
             await page2.close()
 
             countRespondedVacancy++
-
-            return {
-              status: 'responded'
-            }
           })
         })
       )
 
-      // console.log(
-      //   responseAfterCrowlingOnePage,
-      //   vacancyTitles.slice(0, 5),
-      //   `page ${pageNumber}`
-      // )
+      if (pageNumber !== countPages) {
+        console.info(
+          chalk.bgGrey(`кликаем на следующая страницу (${pageNumber + 1})`)
+        )
+
+        await mutex.runExclusive(async () => {
+          const nextPaginationBtnSelector = `[data-qa="pager-page-wrapper-${
+            pageNumber + 1
+          }-${pageNumber}"]`
+
+          const nextPaginationBtn = await page.$(nextPaginationBtnSelector)
+
+          await nextPaginationBtn?.click()
+          await page.waitForNavigation({
+            waitUntil: 'domcontentloaded',
+            timeout: 100000
+          })
+        })
+      }
 
       pageNumber++
 
-      await crawlingPages()
+      await crawlingPage()
     }
 
-    await crawlingPages()
+    await crawlingPage()
 
     console.info(
       chalk.bgMagenta(
         `Успех! Пока вы пили кофе, бот откликнулся за вас на ${countRespondedVacancy} вакансий`
       )
     )
+
+    await browser.close()
+    return
   } catch (err) {
     console.log(err)
   }
