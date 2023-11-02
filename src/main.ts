@@ -6,6 +6,8 @@ import { Mutex } from 'async-mutex'
 import { generateCoverLetter } from './utils/generateCoverLetter.js'
 import { defineCityVacancy } from './utils/defineCityVacancy.js'
 import { defineTitleVacancy } from './utils/defineTitleVacancy.js'
+import { defineDescriptionVacancy } from './utils/defineDescriptionVacancy.js'
+import { exceptions } from './const/exceptions.js'
 const mutex = new Mutex()
 ;(async () => {
   try {
@@ -37,177 +39,179 @@ const mutex = new Mutex()
     const authMethod = await showListAuthVariants()
 
     //логика аутентификации
-    if (authMethod === 'Google') {
-      const googleAuthBtn = await page.$(
-        '[data-qa="account-login-social-gplus"]'
-      )
+    // if (authMethod === 'Google') {
+    //   const googleAuthBtn = await page.$(
+    //     '[data-qa="account-login-social-gplus"]'
+    //   )
 
-      if (!googleAuthBtn) {
-        console.info(
-          chalk.red(
-            'Произошла ошибка. Попробуйте позже или обратитесь к администратору.'
-          )
-        )
-      } else {
-        await googleAuthBtn.click()
-        await page.waitForNavigation({
-          waitUntil: 'networkidle2'
-        })
+    //   if (!googleAuthBtn) {
+    //     console.info(
+    //       chalk.red(
+    //         'Произошла ошибка. Попробуйте позже или обратитесь к администратору.'
+    //       )
+    //     )
+    //   } else {
+    //     await googleAuthBtn.click()
+    //     await page.waitForNavigation({
+    //       waitUntil: 'networkidle2'
+    //     })
 
-        const { googleAuthVariant } = await inquirer.prompt([
-          {
-            type: 'input',
-            name: 'googleAuthVariant',
-            message:
-              'Введите email или номер телефона для google-аутентификации'
-          }
-        ])
+    //     const { googleAuthVariant } = await inquirer.prompt([
+    //       {
+    //         type: 'input',
+    //         name: 'googleAuthVariant',
+    //         message:
+    //           'Введите email или номер телефона для google-аутентификации'
+    //       }
+    //     ])
 
-        //TODO обработать валидацию
+    //     //TODO обработать валидацию
 
-        await page.focus('[name="identifier"]')
-        await page.keyboard.type(googleAuthVariant)
+    //     await page.focus('[name="identifier"]')
+    //     await page.keyboard.type(googleAuthVariant)
 
-        const googleBtnNext = await page.$('#identifierNext > div > button')
+    //     const googleBtnNext = await page.$('#identifierNext > div > button')
 
-        await googleBtnNext?.click()
-        await page.waitForNavigation({
-          waitUntil: 'networkidle2'
-        })
+    //     await googleBtnNext?.click()
+    //     await page.waitForNavigation({
+    //       waitUntil: 'networkidle2'
+    //     })
 
-        //TODO доделать логику с гуглом (не пускает дальше ввода email)
+    //     //TODO доделать логику с гуглом (не пускает дальше ввода email)
+    //   }
+    // } else if (authMethod === 'Phone number') {
+    //   // ввоод номера телефона
+    //   const { enterPhoneNumber } = await inquirer.prompt([
+    //     {
+    //       type: 'input',
+    //       name: 'enterPhoneNumber',
+    //       message: 'Введите номер телефона'
+    //     }
+    //   ])
+
+    //   await page.focus('[data-qa="account-signup-email"]')
+    //   await page.keyboard.type(enterPhoneNumber)
+
+    //   const phoneNumberAuthBtnNext = await page.$(
+    //     '[data-qa="account-signup-submit"]'
+    //   )
+
+    //   await phoneNumberAuthBtnNext?.click()
+
+    //   const captchaInput = await page.$('[data-qa="account-captcha-input"]')
+    //   const codeInput = await page.$('[data-qa="otp-code-input"]')
+
+    //   if (captchaInput) {
+    //     // ввоод каптчи
+    //     const { enterPhoneCaptcha } = await inquirer.prompt([
+    //       {
+    //         type: 'input',
+    //         name: 'enterPhoneCaptcha',
+    //         message:
+    //           'Скрин с каптчей отправлен в телеграм бот. Введите её здесь'
+    //       }
+    //     ])
+
+    //     await page.focus('[data-qa="account-captcha-input"]')
+    //     await page.keyboard.type(enterPhoneCaptcha)
+
+    //     const phoneNumberAuthCaptchaBtn = await page.$(
+    //       '[data-qa="account-signup-submit"]'
+    //     )
+
+    //     await phoneNumberAuthCaptchaBtn?.click()
+
+    //     // ввоод кода
+    //     const { enterPhoneCode } = await inquirer.prompt([
+    //       {
+    //         type: 'input',
+    //         name: 'enterPhoneCode',
+    //         message: 'Введите полученный на телефон код'
+    //       }
+    //     ])
+
+    //     await page.focus('[data-qa="otp-code-input"]')
+    //     await page.keyboard.type(enterPhoneCode)
+
+    //     const phoneNumberAuthFinalBtn = await page.$(
+    //       '[data-qa="otp-code-submit"]'
+    //     )
+
+    //     await phoneNumberAuthFinalBtn?.click()
+    //     await page.waitForNavigation({
+    //       waitUntil: 'networkidle2'
+    //     })
+    //   }
+
+    //   if (codeInput) {
+    //     // ввоод кода
+    //     const { enterPhoneCode } = await inquirer.prompt([
+    //       {
+    //         type: 'input',
+    //         name: 'enterPhoneCode',
+    //         message: 'Введите полученный на телефон код'
+    //       }
+    //     ])
+
+    //     await page.focus('[data-qa="otp-code-input"]')
+    //     await page.keyboard.type(enterPhoneCode)
+
+    //     const phoneNumberAuthFinalBtn = await page.$(
+    //       '[data-qa="otp-code-submit"]'
+    //     )
+
+    //     await phoneNumberAuthFinalBtn?.click()
+    //     await page.waitForNavigation({
+    //       waitUntil: 'networkidle2'
+    //     })
+    //   }
+    // } else if (authMethod === 'Email') {
+
+    // } else {
+    //   console.info(
+    //     'Используйте аутентификацию через Google. Остальное пока в разработке'
+    //   )
+
+    //   await browser.close()
+
+    //   // обработать рекурсию
+    //   await showListAuthVariants()
+    // }
+
+    // ввод email
+    const { enterEmail } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'enterEmail',
+        message: 'Введите email'
       }
-    } else if (authMethod === 'Phone number') {
-      // ввоод номера телефона
-      const { enterPhoneNumber } = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'enterPhoneNumber',
-          message: 'Введите номер телефона'
-        }
-      ])
+    ])
 
-      await page.focus('[data-qa="account-signup-email"]')
-      await page.keyboard.type(enterPhoneNumber)
+    await page.focus('[data-qa="account-signup-email"]')
+    await page.keyboard.type(enterEmail)
 
-      const phoneNumberAuthBtnNext = await page.$(
-        '[data-qa="account-signup-submit"]'
-      )
+    const emailAuthBtnNext = await page.$('[data-qa="account-signup-submit"]')
 
-      await phoneNumberAuthBtnNext?.click()
+    await emailAuthBtnNext?.click()
 
-      const captchaInput = await page.$('[data-qa="account-captcha-input"]')
-      const codeInput = await page.$('[data-qa="otp-code-input"]')
-
-      if (captchaInput) {
-        // ввоод каптчи
-        const { enterPhoneCaptcha } = await inquirer.prompt([
-          {
-            type: 'input',
-            name: 'enterPhoneCaptcha',
-            message:
-              'Скрин с каптчей отправлен в телеграм бот. Введите её здесь'
-          }
-        ])
-
-        await page.focus('[data-qa="account-captcha-input"]')
-        await page.keyboard.type(enterPhoneCaptcha)
-
-        const phoneNumberAuthCaptchaBtn = await page.$(
-          '[data-qa="account-signup-submit"]'
-        )
-
-        await phoneNumberAuthCaptchaBtn?.click()
-
-        // ввоод кода
-        const { enterPhoneCode } = await inquirer.prompt([
-          {
-            type: 'input',
-            name: 'enterPhoneCode',
-            message: 'Введите полученный на телефон код'
-          }
-        ])
-
-        await page.focus('[data-qa="otp-code-input"]')
-        await page.keyboard.type(enterPhoneCode)
-
-        const phoneNumberAuthFinalBtn = await page.$(
-          '[data-qa="otp-code-submit"]'
-        )
-
-        await phoneNumberAuthFinalBtn?.click()
-        await page.waitForNavigation({
-          waitUntil: 'networkidle2'
-        })
+    // ввоод кода
+    const { enterEmailCode } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'enterEmailCode',
+        message: 'Введите отправленный на email код'
       }
+    ])
 
-      if (codeInput) {
-        // ввоод кода
-        const { enterPhoneCode } = await inquirer.prompt([
-          {
-            type: 'input',
-            name: 'enterPhoneCode',
-            message: 'Введите полученный на телефон код'
-          }
-        ])
+    await page.focus('[data-qa="otp-code-input"]')
+    await page.keyboard.type(enterEmailCode)
 
-        await page.focus('[data-qa="otp-code-input"]')
-        await page.keyboard.type(enterPhoneCode)
+    const emailAuthFinalBtn = await page.$('[data-qa="otp-code-submit"]')
 
-        const phoneNumberAuthFinalBtn = await page.$(
-          '[data-qa="otp-code-submit"]'
-        )
-
-        await phoneNumberAuthFinalBtn?.click()
-        await page.waitForNavigation({
-          waitUntil: 'networkidle2'
-        })
-      }
-    } else if (authMethod === 'Email') {
-      // ввод номера телефона
-      const { enterEmail } = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'enterEmail',
-          message: 'Введите email'
-        }
-      ])
-
-      await page.focus('[data-qa="account-signup-email"]')
-      await page.keyboard.type(enterEmail)
-
-      const emailAuthBtnNext = await page.$('[data-qa="account-signup-submit"]')
-
-      await emailAuthBtnNext?.click()
-
-      // ввоод кода
-      const { enterEmailCode } = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'enterEmailCode',
-          message: 'Введите отправленный на email код'
-        }
-      ])
-
-      await page.focus('[data-qa="otp-code-input"]')
-      await page.keyboard.type(enterEmailCode)
-
-      const emailAuthFinalBtn = await page.$('[data-qa="otp-code-submit"]')
-
-      await emailAuthFinalBtn?.click()
-      await page.waitForNavigation({
-        waitUntil: 'networkidle2'
-      })
-    } else {
-      console.info(
-        'Используйте аутентификацию через Google. Остальное пока в разработке'
-      )
-
-      await browser.close()
-
-      // обработать рекурсию
-      await showListAuthVariants()
-    }
+    await emailAuthFinalBtn?.click()
+    await page.waitForNavigation({
+      waitUntil: 'networkidle2'
+    })
 
     //логика приветствия аутентифицированного пользователя
 
@@ -217,14 +221,6 @@ const mutex = new Mutex()
       const profileBtn = await page.$('[data-qa="mainmenu_applicantProfile"]')
 
       await profileBtn!.click()
-
-      // const userNameBlock = await page.$(
-      //   'body > div.bloko-drop.bloko-drop_menu.bloko-drop_theme-light.bloko-drop_layer-overlay.bloko-drop_flexible.bloko-drop_clickable.bloko-drop_bottom > div > div > div.supernova-dropdown > div:nth-child(1) > a > span'
-      // )
-
-      // const spanName = await userNameBlock
-      //   ?.getProperty('textContent').
-      //   .jsonValue()
 
       const spanName = await page.$eval(
         '[data-qa="mainmenu_applicantInfo"] > span',
@@ -263,6 +259,14 @@ const mutex = new Mutex()
     })
 
     // логика обхода вакансий
+
+    await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'continue',
+        message: `Продолжаем?`
+      }
+    ])
 
     const blokoHeader = await page.$eval(
       '[data-qa="bloko-header-3"]',
@@ -357,6 +361,9 @@ const mutex = new Mutex()
 
             const city = await defineCityVacancy(page2)
             const title = await defineTitleVacancy(page2)
+            const desc = await defineDescriptionVacancy(page2)
+
+            console.log(title, 'title')
 
             const alreadyRespondBtn = await page2.$$(
               '[data-qa="vacancy-response-link-view-topic"]'
@@ -369,6 +376,31 @@ const mutex = new Mutex()
                 chalk.bgYellowBright(`${city}`),
                 chalk.bgYellowBright(`${pageNumber}`),
                 chalk.bgBlueBright(`already responded`)
+              )
+              return
+            }
+
+            if (
+              exceptions.some((value) => title.toLowerCase().includes(value))
+            ) {
+              await page2.close()
+              console.info(
+                chalk.bgYellowBright(`${title}`),
+                chalk.bgYellowBright(`${city}`),
+                chalk.bgYellowBright(`${pageNumber}`),
+                chalk.bgCyanBright('exception thrown')
+              )
+              return
+            }
+
+            if (desc.includes('дочитали') || desc.includes('до конца')) {
+              await page2.close()
+              console.info(
+                chalk.bgYellowBright(`${title}`),
+                chalk.bgYellowBright(`${city}`),
+                chalk.bgYellowBright(`${pageNumber}`),
+                chalk.bgWhiteBright(`custom cover letter`),
+                href
               )
               return
             }
@@ -465,7 +497,10 @@ const mutex = new Mutex()
         })
       )
 
-      if (pageNumber !== countPages) {
+      if (
+        pageNumber !== countPages &&
+        countRespondedVacancy < targetNumberVacancy
+      ) {
         console.info(
           chalk.bgGrey(`кликаем на следующая страницу (${pageNumber + 1})`)
         )

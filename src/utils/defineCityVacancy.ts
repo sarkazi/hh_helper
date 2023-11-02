@@ -13,7 +13,7 @@ export const defineCityVacancy = async (page: Page) => {
       (elem) => elem.innerHTML
     )
 
-    return city.split(regex)[0]
+    return cityTo(city.split(regex)[0])
   }
 
   const viewRawAddressSelector = await page.$(
